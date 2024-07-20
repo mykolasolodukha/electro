@@ -8,5 +8,9 @@
 /dataSources.local.xml
 # Zeppelin ignored files
 /ZeppelinRemoteNotebooks/
+
 # Material theme file (Material theme authors, please fix this so that we don't have to include it in `.gitignore`)
 material_theme_project_new.xml
+
+# Ignore all the data sources
+dataSources.xml

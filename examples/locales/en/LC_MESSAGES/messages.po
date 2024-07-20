@@ -1,0 +1,17 @@
+msgid ""
+msgstr ""
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: POEditor.com\n"
+"Project-Id-Version: electro\n"
+"Language: en\n"
+
+#: test_flow.py:27
+msgid "test_flow_message"
+msgstr "Testing this `electro` Flow. Everything works!"
+
+#: test_flow.py:121
+msgid "message_edit_warning"
+msgstr ""
+

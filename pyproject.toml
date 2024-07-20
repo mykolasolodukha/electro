@@ -10,6 +10,23 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
+py-cord = {git = "https://github.com/mykolasolodukha/pycord.git", rev = "v2.5.x"}
+stringcase = "^1.2.0"
+loguru = "^0.7.2"
+openai = "^1.36.0"
+pydantic-settings = "^2.3.4"
+pydantic = "^2.8.2"
+dj-redis-url = "^0.1.4"
+redis = "^5.0.7"
+tortoise-orm = {extras = ["asyncpg"], version = "^0.21.5"}
+aerich = "^0.7.2"
+tenacity = "^8.5.0"
+
+
+[tool.aerich]
+tortoise_orm = "electro.toolkit.tortoise_orm.TORTOISE_ORM_CONFIG"
+location = "./migrations"
+src_folder = "./../electro"
 
 
 [build-system]

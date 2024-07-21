@@ -3,7 +3,7 @@
 import discord
 from discord.ext import commands
 
-from __version__ import __version__
+from .__version__ import __version__
 from .settings import settings
 
 

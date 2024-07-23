@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Generic, get_origin
+from typing import Generic, get_origin, Type
 
 import tortoise
 from stringcase import snakecase
@@ -450,11 +450,17 @@ class PostgresStorageBucketMeta(StorageBucketMeta):
 
         # Set the storage elements from annotations
         for attr_name, attr_type in (merged_bases_annotations | cls.__annotations__).items():
-            if (not attr_name.startswith("_")) and get_origin(attr_type) == StorageBucketElement:
+            if (not attr_name.startswith("_")) and issubclass(get_origin(attr_type), BaseStorageBucketElement):
+                element_class: Type[PostgresStorageBucketElement] = (
+                    PostgresStorageBucketElement
+                    if attr_type == StorageBucketElement  # So that the old storage buckets would still work
+                    else get_origin(attr_type)
+                )
+
                 setattr(
                     cls,
                     attr_name,
-                    PostgresStorageBucketElement(
+                    element_class(
                         _type=attr_type.__args__[0],
                         _scope=cls._get_storage_scope(attr_type),
                         model=cls._model,

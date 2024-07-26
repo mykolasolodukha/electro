@@ -643,14 +643,14 @@ develop = false
 aiohttp = ">=3.6.0,<4.0"
 
 [package.extras]
-docs = ["furo @ git+https://github.com/pradyunsg/furo@193643f", "myst-parser (==1.0.0)", "sphinx (==5.3.0)", "sphinx-autodoc-typehints (==1.23.0)", "sphinx-copybutton (==0.5.2)", "sphinxcontrib-trio (==1.1.2)", "sphinxcontrib-websupport (==1.2.4)", "sphinxext-opengraph (==0.9.1)"]
+docs = ["furo @ git+https://github.com/pradyunsg/furo@193643f", "myst-parser (==1.0.0)", "sphinx (==5.3.0)", "sphinx-autodoc-typehints (==1.23.0)", "sphinx-copybutton (==0.5.2)", "sphinxcontrib-websupport (==1.2.4)", "sphinxcontrib_trio (==1.1.2)", "sphinxext-opengraph (==0.9.1)"]
 speed = ["aiohttp[speedups]", "msgspec (>=0.18.6,<0.19.0)"]
 voice = ["PyNaCl (>=1.3.0,<1.6)"]
 
 [package.source]
 type = "git"
 url = "https://github.com/mykolasolodukha/pycord.git"
-reference = "v2.5.x"
+reference = "d8070a90a8ec12dbc64b703513c14fa80834861d"
 resolved_reference = "d8070a90a8ec12dbc64b703513c14fa80834861d"
 
 [[package]]
@@ -1071,4 +1071,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "83afe2629db7a67c45d5be2086b79dfd91339476adb0223ee16789525b1976c2"
+content-hash = "e43f9454f1ef19a6fa78cc3d40e2af90407391d44a4d60441a15d4858d536707"

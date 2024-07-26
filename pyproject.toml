@@ -10,7 +10,6 @@ packages = [
 
 [tool.poetry.dependencies]
 python = "^3.12"
-py-cord = {git = "https://github.com/mykolasolodukha/pycord.git", rev = "v2.5.x"}
 stringcase = "^1.2.0"
 loguru = "^0.7.2"
 openai = "^1.36.0"
@@ -21,6 +20,7 @@ redis = "^5.0.7"
 tortoise-orm = {extras = ["asyncpg"], version = "^0.21.5"}
 aerich = "^0.7.2"
 tenacity = "^8.5.0"
+py-cord = {git = "https://github.com/mykolasolodukha/pycord.git", rev = "d8070a90a8ec12dbc64b703513c14fa80834861d"}
 
 
 [tool.aerich]

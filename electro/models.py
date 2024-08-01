@@ -40,7 +40,9 @@ class User(BaseModel):
     locale = fields.CharField(max_length=255, null=True)
 
     is_bot = fields.BooleanField(default=False)
+
     is_admin = fields.BooleanField(default=False)
+    is_staff_member = fields.BooleanField(default=False)
 
     messages: fields.ReverseRelation[Message]
     state_changed: fields.ReverseRelation[UserStateChanged]

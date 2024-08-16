@@ -427,6 +427,15 @@ class BaseStorageBucket(ABC, metaclass=StorageBucketMeta):
             if key.startswith(cls._fsm_storage_key_name):
                 del flow_connector.user_data[key]
 
+    @classmethod
+    def parse_from_user_data(cls, user_data: dict[str, typing.Any]) -> dict[str, typing.Any]:
+        """Parse the storage bucket from the user data."""
+        return {
+            key.removeprefix(f"{cls._fsm_storage_key_name}{STORAGE_BUCKETS_SEPARATOR}"): value
+            for key, value in user_data.items()
+            if key.startswith(f"{cls._fsm_storage_key_name}{STORAGE_BUCKETS_SEPARATOR}")
+        }
+
 
 # region Postgres storage buckets
 class PostgresStorageBucketMeta(StorageBucketMeta):

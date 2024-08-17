@@ -102,6 +102,17 @@ class FlowManager(ContextInstanceMixin):
 
     # endregion
 
+    # region Get Flow
+    def get_flow(self, flow_name: str) -> Flow | None:
+        """Get the flow by its name."""
+        for flow in self.flows:
+            if flow.__class__.__name__ == flow_name:
+                return flow
+
+        return None
+
+    # endregion
+
     async def _create_user_and_channel(
         self, user: discord.User | None = None, channel: discord.TextChannel | discord.DMChannel | None = None
     ):
@@ -150,9 +161,6 @@ class FlowManager(ContextInstanceMixin):
     # @fail_safely
     async def _dispatch(self, flow_connector: FlowConnector):
         """Dispatch the flow."""
-        # Set the current flow connector
-        FlowConnector.set_current(flow_connector)
-
         # Create the User and Channel records if they don't exist
         await self._create_user_and_channel(flow_connector.user, flow_connector.channel)
 
@@ -245,15 +253,13 @@ class FlowManager(ContextInstanceMixin):
                     )
                     return  # Do not raise an exception, as it's not an error
 
-        # After the flow step(s) is/are run, update the user state and data
-        if flow_connector.user:
-            await self._set_user_state(flow_connector.user, flow_connector.user_state)
-            await self._set_user_data(flow_connector.user, flow_connector.user_data)
+    async def dispatch(self, flow_connector: FlowConnector):
+        """Dispatch the flow."""
+        # Set the current flow connector
+        FlowConnector.set_current(flow_connector)
 
-        # Also, update the channel state and data
-        if flow_connector.channel:
-            await self._set_channel_state(flow_connector.channel, flow_connector.channel_state)
-            await self._set_channel_data(flow_connector.channel, flow_connector.channel_data)
+        async with self:
+            return await self._dispatch(flow_connector)
 
     async def on_message(self, message: discord.Message):
         """Handle the messages sent by the users."""
@@ -273,6 +279,7 @@ class FlowManager(ContextInstanceMixin):
         channel_data = await self._get_channel_data(message.channel)
 
         flow_connector = FlowConnector(
+            flow_manager=self,
             bot=self.bot,
             event=FlowConnectorEvents.MESSAGE,
             user=message.author,
@@ -284,7 +291,7 @@ class FlowManager(ContextInstanceMixin):
             channel_data=channel_data,
         )
 
-        return await self._dispatch(flow_connector)
+        return await self.dispatch(flow_connector)
 
     async def on_interaction(self, interaction: discord.Interaction):
         """Handle the interactions sent by the users."""
@@ -299,6 +306,7 @@ class FlowManager(ContextInstanceMixin):
 
         # noinspection PyTypeChecker
         flow_connector = FlowConnector(
+            flow_manager=self,
             bot=self.bot,
             event=FlowConnectorEvents.BUTTON_CLICK,
             user=interaction.user,
@@ -311,7 +319,7 @@ class FlowManager(ContextInstanceMixin):
             channel_data=channel_data,
         )
 
-        return await self._dispatch(flow_connector)
+        return await self.dispatch(flow_connector)
 
     async def on_member_join(self, member: discord.Member):
         """Handle the `member_join` event."""
@@ -323,6 +331,7 @@ class FlowManager(ContextInstanceMixin):
 
         # noinspection PyProtectedMember
         flow_connector = FlowConnector(
+            flow_manager=self,
             bot=self.bot,
             event=FlowConnectorEvents.MEMBER_JOIN,
             user=member._user,
@@ -336,7 +345,7 @@ class FlowManager(ContextInstanceMixin):
             channel_data=ChannelData(),
         )
 
-        return await self._dispatch(flow_connector)
+        return await self.dispatch(flow_connector)
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
         """Handle the `member_join` event."""
@@ -347,6 +356,7 @@ class FlowManager(ContextInstanceMixin):
 
         # noinspection PyProtectedMember
         flow_connector = FlowConnector(
+            flow_manager=self,
             bot=self.bot,
             event=FlowConnectorEvents.MEMBER_UPDATE,
             user=after._user,
@@ -360,4 +370,25 @@ class FlowManager(ContextInstanceMixin):
             channel_data=ChannelData(),
         )
 
-        return await self._dispatch(flow_connector)
+        return await self.dispatch(flow_connector)
+
+    # region Context Manager
+    async def __aenter__(self):
+        """Enter the context manager."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Exit the context manager."""
+        flow_connector = FlowConnector.get_current()
+
+        # After the flow step(s) is/are run, update the user state and data
+        if flow_connector.user:
+            await self._set_user_state(flow_connector.user, flow_connector.user_state)
+            await self._set_user_data(flow_connector.user, flow_connector.user_data)
+
+        # Also, update the channel state and data
+        if flow_connector.channel:
+            await self._set_channel_state(flow_connector.channel, flow_connector.channel_state)
+            await self._set_channel_data(flow_connector.channel, flow_connector.channel_data)
+
+    # endregion

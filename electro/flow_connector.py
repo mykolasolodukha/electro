@@ -1,14 +1,20 @@
 """Flow Connector, the main object that is passed from one `Flow` to another."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import discord
 from discord.ext import commands
 
 from ._common import ContextInstanceMixin
 from .storage import ChannelData, UserData
+
+
+if TYPE_CHECKING:
+    from electro import FlowManager
 
 
 class FlowConnectorEvents(str, Enum):
@@ -28,6 +34,8 @@ class FlowConnector(ContextInstanceMixin):
     """The connector that is passed from one `Flow` to another."""
 
     # TODO: [05.09.2023 by Mykola] Forbid re-assigning the attributes of this class
+
+    flow_manager: FlowManager
 
     bot: commands.Bot
 

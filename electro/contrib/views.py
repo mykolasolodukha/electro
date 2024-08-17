@@ -451,13 +451,16 @@ class ActionButtonsView(ConfirmButtonView):
     """The view that has action buttons."""
 
     action_buttons: list[ActionButton]
-    one_time_view: bool = False
 
-    def __init__(self, action_buttons: list[ActionButton], **kwargs):
+    one_time_view: bool = False
+    force_stay_on_step: bool = False
+
+    def __init__(self, action_buttons: list[ActionButton], force_stay_on_step: bool = False, **kwargs):
         """Initialize the view."""
         self.action_buttons = action_buttons
 
         self.one_time_view = kwargs.pop("one_time_view", False)
+        self.force_stay_on_step = force_stay_on_step
 
         super().__init__(
             confirm_button_label=kwargs.pop("confirm_button_label", DEFAULT_ACTION_BUTTONS_VIEW_CONFIRM_BUTTON_LABEL),
@@ -494,7 +497,7 @@ class ActionButtonsView(ConfirmButtonView):
 
         await button.trigger_action(flow_connector)
 
-        if raise_view_step_finished:
+        if raise_view_step_finished and not self.force_stay_on_step:
             raise ViewStepFinished()
 
 

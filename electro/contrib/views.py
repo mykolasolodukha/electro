@@ -13,10 +13,9 @@ import discord
 from discord.ui.view import _ViewWeights
 from tenacity import retry, stop_after_attempt, wait_fixed
 
+from ..substitutions import BaseSubstitution
 from ..toolkit.buttons import create_button, FrameworkButtonStyle
 from ..toolkit.loguru_logging import logger
-
-from ..substitutions import BaseSubstitution
 
 if typing.TYPE_CHECKING:
     from .buttons import ActionButton

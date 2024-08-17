@@ -6,7 +6,6 @@ from discord.ext import commands
 # from .__version__ import __version__
 from .settings import settings
 
-
 # Use this hacks to prevent the commands from being added multiple times
 # __VERSION_COMMAND_ENABLED = False
 __PING_COMMAND_ENABLED = False
@@ -28,9 +27,9 @@ bot = commands.Bot(command_prefix=settings.BOT_COMMAND_PREFIX, intents=intents)
 #     __VERSION_COMMAND_ENABLED = True
 
 if not __PING_COMMAND_ENABLED:
+
     @bot.command(name="ping")
     async def ping(ctx):
         await ctx.send("Pong!")
-
 
     __PING_COMMAND_ENABLED = True

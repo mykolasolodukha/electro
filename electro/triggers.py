@@ -6,10 +6,9 @@ import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from .settings import settings
-
 from .flow_connector import FlowConnectorEvents
 from .scopes import FlowScopes
+from .settings import settings
 
 if typing.TYPE_CHECKING:
     from .flow import FlowConnector

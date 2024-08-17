@@ -7,9 +7,8 @@ from abc import ABC, abstractmethod
 
 import discord
 
-from .toolkit.redis_storage import RedisStorage
-
 from .flow_connector import FlowConnector
+from .toolkit.redis_storage import RedisStorage
 
 REDIS_STORAGE_VALUE = typing.TypeVar("REDIS_STORAGE_VALUE", bound=typing.Any)
 

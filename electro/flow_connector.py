@@ -12,7 +12,6 @@ from discord.ext import commands
 from ._common import ContextInstanceMixin
 from .storage import ChannelData, UserData
 
-
 if TYPE_CHECKING:
     from electro import FlowManager
 

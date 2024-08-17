@@ -13,16 +13,16 @@ from typing import Any
 import discord
 from openai import NOT_GIVEN
 
-# from decorators import with_constant_typing
-from .settings import settings
-from .toolkit.loguru_logging import logger
-from .toolkit.openai_client import async_openai_client
-from .toolkit.templated_i18n import TemplatedString
-
 from .contrib.storage_buckets import BaseStorageBucketElement, StorageBucketElement
 from .contrib.views import BaseView, ViewStepFinished
 from .flow_connector import FlowConnectorEvents
+
+# from decorators import with_constant_typing
+from .settings import settings
 from .substitutions import BaseSubstitution
+from .toolkit.loguru_logging import logger
+from .toolkit.openai_client import async_openai_client
+from .toolkit.templated_i18n import TemplatedString
 
 if typing.TYPE_CHECKING:
     from .flow import FlowConnector

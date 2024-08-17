@@ -21,23 +21,23 @@ async def _message_sleep(self: discord.abc.Messageable, message_text: str) -> No
 
 
 async def send(
-        self,
-        content=None,
-        *,
-        tts=None,
-        embed=None,
-        embeds=None,
-        file=None,
-        files=None,
-        stickers=None,
-        delete_after=None,
-        nonce=None,
-        allowed_mentions=None,
-        reference=None,
-        mention_author=None,
-        view=None,
-        suppress=None,
-        silent=None,
+    self,
+    content=None,
+    *,
+    tts=None,
+    embed=None,
+    embeds=None,
+    file=None,
+    files=None,
+    stickers=None,
+    delete_after=None,
+    nonce=None,
+    allowed_mentions=None,
+    reference=None,
+    mention_author=None,
+    view=None,
+    suppress=None,
+    silent=None,
 ):
     """Send a message to the channel."""
     total_sleep_time_at_the_end = 0
@@ -135,5 +135,6 @@ def enable_message_separator():
     discord.abc.Messageable.send = send
 
     __MESSAGE_SEPARATOR_ENABLED = True
+
 
 # endregion

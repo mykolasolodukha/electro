@@ -3,10 +3,10 @@
 from abc import ABC
 from typing import Any, cast, Type
 
-from .storage_buckets import BaseStorageBucketElement
 from ..flow_connector import FlowConnector
 from ..substitutions import BaseSubstitution, CallbackSubstitution
 from ..toolkit.tortoise_orm import Model
+from .storage_buckets import BaseStorageBucketElement
 
 
 class TortoiseModelSubstitution(CallbackSubstitution, ABC):

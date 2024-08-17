@@ -5,16 +5,16 @@ from collections import defaultdict
 
 import discord
 
-# from decorators import fail_safely
-from .models import Channel, User
-from .toolkit.loguru_logging import logger
-from .toolkit.tortoise_orm import Model
-
 from ._common import ContextInstanceMixin
 from .flow import Flow, FlowConnector, FlowFinished
 from .flow_connector import FlowConnectorEvents
+
+# from decorators import fail_safely
+from .models import Channel, User
 from .scopes import FlowScopes
 from .storage import BaseFlowStorage, ChannelData, FlowMemoryStorage, UserData
+from .toolkit.loguru_logging import logger
+from .toolkit.tortoise_orm import Model
 
 
 class EventCannotBeProcessed(Exception):

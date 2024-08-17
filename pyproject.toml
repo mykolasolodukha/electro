@@ -23,6 +23,38 @@ tenacity = "^8.5.0"
 py-cord = {git = "https://github.com/mykolasolodukha/pycord.git", rev = "d8070a90a8ec12dbc64b703513c14fa80834861d"}
 
 
+[tool.poetry.group.dev.dependencies]
+black = "^24.8.0"
+isort = "^5.13.2"
+pylint = "^3.2.6"
+pydocstyle = {extras = ["toml"], version = "^6.3.0"}
+
+
+[tool.black]
+line-length = 120
+target-version = ["py312"]
+verbose = false
+skip-string-normalization = false
+
+[tool.isort]
+profile = "black"
+line_length = 120
+src_paths = ["electro"]
+sections = ['FUTURE', 'STDLIB', 'THIRDPARTY', 'FIRSTPARTY', 'LOCALFOLDER']
+known_first_party = ["electro"]
+filter_files = true
+force_alphabetical_sort_within_sections = true
+
+[tool.pylint.main]
+max-line-length = 120  # the maximum length of a line
+disable = ["fixme"]  # ignore TODOs and FIXMEs
+source-roots = ["electro"]  # the source roots for pylint to check
+ignore-patterns = ["tests", "migrations"]  # ignore the tests and migrations folders
+
+[tool.pydocstyle]
+match-dir = "(?!tests|migrations).*"  # exclude the tests and migrations folders
+
+
 [tool.aerich]
 tortoise_orm = "electro.toolkit.tortoise_orm.TORTOISE_ORM_CONFIG"
 location = "./migrations"

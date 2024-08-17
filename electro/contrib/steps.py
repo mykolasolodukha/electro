@@ -3,21 +3,26 @@ from dataclasses import dataclass
 from typing import Type
 
 import discord
+
 from electro import FlowConnector
 from electro.contrib.storage_buckets import BaseStorageBucketElement
 
-from .storages import ModelsStorageElement
-from .views import ChooseOneOptionView
 from ..flow_step import MessageFlowStep
 from ..models import BaseModel
+from .storages import ModelsStorageElement
+from .views import ChooseOneOptionView
 
 
 class ChooseOneModelView(ChooseOneOptionView):
     """Choose one of the models."""
 
-    def __init__(self, model_to_choose_from: Type[BaseModel],
-                 options: list[str | discord.ui.Button] | typing.Callable[[], typing.Awaitable[list[str]]] = None,
-                 answers_storage: BaseStorageBucketElement | None = None, **kwargs):
+    def __init__(
+        self,
+        model_to_choose_from: Type[BaseModel],
+        options: list[str | discord.ui.Button] | typing.Callable[[], typing.Awaitable[list[str]]] = None,
+        answers_storage: BaseStorageBucketElement | None = None,
+        **kwargs,
+    ):
         """Initialize the view."""
         if not options:
             options = []

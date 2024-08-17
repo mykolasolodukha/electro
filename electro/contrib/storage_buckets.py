@@ -28,10 +28,10 @@ class StorageSubstitution(BaseSubstitution):
     formatter: typing.Callable[[VALUE], str] | None = None
 
     def __init__(
-            self,
-            data_factory: typing.Callable[[], typing.Awaitable[VALUE | None]],
-            index: int | None = None,
-            formatter: typing.Callable[[VALUE], str] | None = None,
+        self,
+        data_factory: typing.Callable[[], typing.Awaitable[VALUE | None]],
+        index: int | None = None,
+        formatter: typing.Callable[[VALUE], str] | None = None,
     ):
         self.data_factory = data_factory
         self.index = index
@@ -367,7 +367,7 @@ class StorageBucketMeta(ABCMeta):
     """The metaclass for storage buckets."""
 
     def _get_storage_scope(
-            cls, storage_element: BaseStorageBucketElement, *, default: FlowScopes = FlowScopes.USER
+        cls, storage_element: BaseStorageBucketElement, *, default: FlowScopes = FlowScopes.USER
     ) -> FlowScopes:
         """Get the storage scope."""
         return getattr(cls, "_scope", getattr(storage_element, "_scope", default))
@@ -542,5 +542,6 @@ class BasePostgresStorageBucket(BaseStorageBucket, metaclass=PostgresStorageBuck
     #             if name in cls._meta.m2m_fields
     #         ],
     #     }
+
 
 # endregion

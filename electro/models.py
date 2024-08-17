@@ -235,4 +235,5 @@ class BaseAssistantsStorageModel(BaseStorageModel):
 
         abstract = True
 
+
 # endregion

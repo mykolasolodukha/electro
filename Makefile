@@ -1,4 +1,25 @@
+ifneq ("$(wildcard .env)","")
+include .env
+endif
+
+
 COMMIT_MSG_TEMPLATE = ":bookmark: Release \`v{version}\`"
+
+
+SOURCES_DIR = "./electro"
+
+
+# region Style
+.PHONY: style
+style:
+	poetry run black $(SOURCES_DIR)
+	poetry run isort $(SOURCES_DIR)
+	poetry run pylint $(SOURCES_DIR)
+	poetry run pydocstyle $(SOURCES_DIR)
+
+
+# endregion
+
 
 # region Versioning
 .PHONY: commit_version

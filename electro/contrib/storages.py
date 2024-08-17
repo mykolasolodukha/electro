@@ -1,7 +1,7 @@
 import typing
 
-from .storage_buckets import PostgresStorageBucketElement
 from ..models import BaseModel
+from .storage_buckets import PostgresStorageBucketElement
 
 VALUE = typing.TypeVar("VALUE", bound=BaseModel)
 

@@ -479,13 +479,21 @@ class ActionButtonsView(ConfirmButtonView):
 
     one_time_view: bool = False
     force_stay_on_step: bool = False
+    force_confirm_button: bool = False
 
-    def __init__(self, action_buttons: list[ActionButton], force_stay_on_step: bool = False, **kwargs):
+    def __init__(
+        self,
+        action_buttons: list[ActionButton],
+        force_stay_on_step: bool = False,
+        force_confirm_button: bool = False,
+        **kwargs,
+    ):
         """Initialize the view."""
         self.action_buttons = action_buttons
 
         self.one_time_view = kwargs.pop("one_time_view", False)
         self.force_stay_on_step = force_stay_on_step
+        self.force_confirm_button = force_confirm_button
 
         super().__init__(
             confirm_button_label=kwargs.pop("confirm_button_label", DEFAULT_ACTION_BUTTONS_VIEW_CONFIRM_BUTTON_LABEL),
@@ -495,7 +503,9 @@ class ActionButtonsView(ConfirmButtonView):
     async def get_static_buttons(self, flow_connector: FlowConnector) -> list[discord.ui.Button]:
         """Get the buttons for the view."""
         return self.action_buttons + (
-            await super().get_static_buttons(flow_connector) if not self.one_time_view else []
+            await super().get_static_buttons(flow_connector)
+            if not self.one_time_view or self.force_confirm_button
+            else []
         )
 
     async def process_button_click(self, button: discord.ui.Button, flow_connector: FlowConnector):

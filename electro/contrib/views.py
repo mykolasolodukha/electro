@@ -25,7 +25,6 @@ from .storage_buckets import BaseStorageBucketElement
 if typing.TYPE_CHECKING:
     from ..flow_connector import FlowConnector
 
-
 LAST_ROW_INDEX = 4
 
 
@@ -346,6 +345,8 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
         n_answers_to_select: int | None = None,
         min_answers_allowed: int | None = None,
         answers_storage: BaseStorageBucketElement | None = None,
+        answers_selection_style: FrameworkButtonStyle = FrameworkButtonStyle.success,
+        confirm_button_style: FrameworkButtonStyle = FrameworkButtonStyle.primary,
         **kwargs,
     ):
         """Initialize the view."""
@@ -357,9 +358,15 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
 
         self.answers_storage = answers_storage
 
+        self.answers_selection_style = answers_selection_style
+        self.confirm_button_style = confirm_button_style
+
     async def get_static_buttons(self, flow_connector: FlowConnector) -> list[discord.ui.Button | str]:
         """Get the buttons for the answers, and the confirm button."""
         confirm_button = copy(self.confirm_button)
+
+        # Change the style of the confirm button
+        confirm_button.style = self.confirm_button_style
 
         # Disable the confirm button by default, only if the `n_answers_to_select` or the `min_answers_allowed` is set
         confirm_button.disabled = bool(self.n_answers_to_select) or bool(self.min_answers_allowed)
@@ -386,7 +393,7 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
             button.style = self.buttons_style
         else:
             user_answers.append(button.label)
-            button.style = FrameworkButtonStyle.success
+            button.style = self.answers_selection_style
 
     def _disable_unselected_buttons(self, user_answers: list[str]) -> None:
         """Disable the unselected buttons."""

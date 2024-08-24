@@ -242,6 +242,9 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
 
     view: BaseView | None = None
 
+    validator: typing.Callable[[str], bool] | None = None
+    validator_error_message: TemplatedString | None = None
+
     # TODO: [27.09.2023 by Mykola] Make this automatic, on the `Flow` level
     save_response_to_storage: StorageBucketElement | None = None
 
@@ -302,6 +305,17 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
                 pass
 
         # TODO: [23.11.2023 by Mykola] Use Whisper to transcribe the audio message into text
+
+        if self.validator:
+            if not self.validator(connector.message.content):
+                error_message = (
+                    await self._get_formatted_message(self.validator_error_message, connector)
+                    if self.validator_error_message
+                    else "Invalid input."
+                )
+
+                await connector.channel.send(error_message)
+                return
 
         if self.save_response_to_storage:
             await self.save_response_to_storage.set_data(connector.message.content)

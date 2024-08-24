@@ -327,7 +327,7 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
     answers: (
         list[str] | BaseSubstitution | typing.Awaitable[list[str]] | typing.Callable[[], typing.Awaitable[list[str]]]
     )
-    n_answers_to_select: int
+    n_answers_to_select: int | None
     min_answers_allowed: int | None
 
     confirm_button_label: str | None = None
@@ -342,17 +342,18 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
             | typing.Awaitable[list[str]]
             | typing.Callable[[], typing.Awaitable[list[str]]]
         ),
-        n_answers_to_select: int,
+        confirm_button_label: str,
+        n_answers_to_select: int | None = None,
         min_answers_allowed: int | None = None,
         answers_storage: BaseStorageBucketElement | None = None,
         **kwargs,
     ):
         """Initialize the view."""
-        super().__init__(**kwargs)
+        super().__init__(confirm_button_label, **kwargs)
 
         self.answers = answers
-        self.n_answers_to_select: int = n_answers_to_select
-        self.min_answers_allowed: int = min_answers_allowed or n_answers_to_select
+        self.n_answers_to_select: int | None = n_answers_to_select
+        self.min_answers_allowed: int | None = min_answers_allowed or n_answers_to_select
 
         self.answers_storage = answers_storage
 
@@ -360,8 +361,8 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
         """Get the buttons for the answers, and the confirm button."""
         confirm_button = copy(self.confirm_button)
 
-        # Disable the confirm button by default
-        confirm_button.disabled = True
+        # Disable the confirm button by default, only if the `n_answers_to_select` or the `min_answers_allowed` is set
+        confirm_button.disabled = bool(self.n_answers_to_select) or bool(self.min_answers_allowed)
 
         return [
             *(
@@ -413,6 +414,22 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
             if isinstance(item, discord.ui.Button) and item.label == self.confirm_button_label:
                 item.disabled = not enabled
 
+    async def get_or_create_for_connector(
+        self,
+        flow_connector: FlowConnector,
+        dynamic_buttons: list[str | discord.Button] | None = None,
+        force_init: bool = False,
+        force_get: bool = False,
+        from_step_run: bool = False,
+    ) -> typing.Self:
+        if from_step_run:
+            # Clear the storage
+            await self.clear_storage()
+
+        return await super().get_or_create_for_connector(
+            flow_connector, dynamic_buttons, force_init, force_get, from_step_run
+        )
+
     async def process_button_click(self, button: discord.ui.Button, flow_connector: FlowConnector):
         """Save the answer and check whether the `n_answers_to_select` is reached."""
 
@@ -426,15 +443,17 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
         await self._set_user_answer(user_answers)
 
         if self._confirm_button:
-            if len(user_answers) >= self.n_answers_to_select:
-                self._disable_unselected_buttons(user_answers)
-            else:
-                self._enable_all_buttons()
+            if self.n_answers_to_select:
+                if len(user_answers) >= self.n_answers_to_select:
+                    self._disable_unselected_buttons(user_answers)
+                else:
+                    self._enable_all_buttons()
 
-            if len(user_answers) >= self.min_answers_allowed:
-                self._change_confirm_button_state(enabled=True)
-            else:
-                self._change_confirm_button_state(enabled=False)
+            if self.min_answers_allowed:
+                if len(user_answers) >= self.min_answers_allowed:
+                    self._change_confirm_button_state(enabled=True)
+                else:
+                    self._change_confirm_button_state(enabled=False)
 
             return await self._update_view(flow_connector.interaction)
 

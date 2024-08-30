@@ -251,36 +251,43 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
     non_blocking: bool = False
     _testing: bool = False
 
+    async def send_message(
+        self,
+        connector: FlowConnector,
+        message: TemplatedString | str,
+        channel: discord.abc.Messageable | BaseSubstitution[discord.abc.Messageable] | None = None,
+        view: BaseView | None = None,
+    ) -> discord.Message:
+        """Send the message."""
+        message: str | None = (
+            await self._get_formatted_message(message, connector) if isinstance(message, TemplatedString) else message
+        )
+
+        files = await self._get_files_to_send(connector)
+
+        channel_to_send_to: discord.abc.Messageable = (
+            await channel.resolve(connector) if channel and isinstance(channel, BaseSubstitution) else channel
+        ) or connector.channel
+
+        view_to_sent = await view.get_or_create_for_connector(connector, from_step_run=True) if view else None
+
+        return await channel_to_send_to.send(
+            message,
+            files=files or None,
+            view=view_to_sent,
+        )
+
     # TODO: [2024-07-19 by Mykola] Use the decorators
     # @with_constant_typing()
     async def run(
         self,
         connector: FlowConnector,
         channel_to_send_to: discord.abc.Messageable | BaseSubstitution | None = None,
-    ):
+    ) -> discord.Message:
         """Run the `BaseFlowStep`."""
-        formatted_message: str | None = (
-            await self._get_formatted_message(self.message, connector) if self.message else None
-        )
 
-        files = await self._get_files_to_send(connector)
-
-        channel_to_send_to: discord.abc.Messageable = (
-            channel_to_send_to
-            or (
-                await self.channel_to_send_to.resolve(connector)
-                if self.channel_to_send_to and isinstance(self.channel_to_send_to, BaseSubstitution)
-                else self.channel_to_send_to
-            )
-            or connector.channel
-        )
-
-        view_to_sent = await self.view.get_or_create_for_connector(connector, from_step_run=True) if self.view else None
-
-        await channel_to_send_to.send(
-            formatted_message,
-            files=files or None,
-            view=view_to_sent,
+        message: discord.Message = await self.send_message(
+            connector, self.message, channel=channel_to_send_to, view=self.view
         )
 
         if self.non_blocking:
@@ -288,12 +295,12 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
 
             raise FlowStepDone()
 
-    async def respond(self, connector: FlowConnector):
+        return message
+
+    async def respond(self, connector: FlowConnector) -> discord.Message:
         """Respond to the user."""
         if self.response_message:
-            formatted_message: str = await self._get_formatted_message(self.response_message, connector)
-
-            await connector.channel.send(formatted_message)
+            return await self.send_message(connector, self.response_message, channel=connector.channel)
 
     async def process_response(self, connector: FlowConnector):
         """Process the response. If the `.response_message` is set, send it."""

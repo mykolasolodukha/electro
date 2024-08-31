@@ -33,6 +33,13 @@ class FlowMeta(ABCMeta):
 
         try:
             steps: dict[str, BaseFlowStep | BaseFlow] = {}
+
+            # Get all the steps from the bases
+            for base in reversed(bases):  # Reversed so that the first base gets the priority (as in MRO?)
+                if hasattr(base, "_steps"):
+                    # noinspection PyProtectedMember
+                    steps.update(base._steps)
+
             for name_, prop in namespace.items():
                 if isinstance(prop, (BaseFlowStep, BaseFlow)):
                     if (

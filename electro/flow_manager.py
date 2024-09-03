@@ -92,7 +92,11 @@ class FlowManager(ContextInstanceMixin):
         """Get the data of the channel."""
         return await self.storage.get_channel_data(channel.id)
 
-    async def _set_channel_data(self, channel: discord.TextChannel, data: ChannelData | dict[str, typing.Any] | None):
+    async def _set_channel_data(
+        self,
+        channel: discord.TextChannel,
+        data: ChannelData | dict[str, typing.Any] | None,
+    ):
         """Set the data of the channel."""
         await self.storage.set_channel_data(channel.id, data)
 
@@ -113,8 +117,20 @@ class FlowManager(ContextInstanceMixin):
 
     # endregion
 
+    async def _finish_flow(self, flow_connector: FlowConnector):
+        """Finish the flow."""
+        # Delete the state and data for the user
+        await self.storage.delete_user_state(flow_connector.user.id)
+        await self.storage.delete_user_data(flow_connector.user.id)
+
+        # Run the callbacks
+        for callback in self._on_finish_callbacks:
+            await callback(flow_connector)
+
     async def _create_user_and_channel(
-        self, user: discord.User | None = None, channel: discord.TextChannel | discord.DMChannel | None = None
+        self,
+        user: discord.User | None = None,
+        channel: discord.TextChannel | discord.DMChannel | None = None,
     ):
         """Create the `User` and `Channel` records if they don't exist."""
         logger.info(f"Creating the User and Channel records for {user=}, {channel=}")
@@ -230,18 +246,15 @@ class FlowManager(ContextInstanceMixin):
                     await flow.step(flow_connector)
                 except FlowFinished:
                     # TODO: [28.08.2023 by Mykola] Go to the next flow?
-                    # Delete the state and data for the user
-                    await self.storage.delete_user_state(flow_connector.user.id)
-                    await self.storage.delete_user_data(flow_connector.user.id)
-
-                    # Run the callbacks
-                    for callback in self._on_finish_callbacks:
-                        await callback(flow_connector)
+                    return await self._finish_flow(flow_connector)
 
                 # TODO: [16.03.2024 by Mykola] Maybe allow running multiple flows at the same time?
                 break  # Do not allow running multiple flows at the same time
             else:
                 if scope == FlowScopes.USER:
+                    if flow_connector.event == FlowConnectorEvents.MESSAGE:
+                        return await self._finish_flow(flow_connector)
+
                     logger.warning(f"Received an event that cannot be processed: {flow_connector.event}")
                     raise EventCannotBeProcessed(f"Received an event that cannot be processed: {flow_connector.event}")
                 else:

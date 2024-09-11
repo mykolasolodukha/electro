@@ -40,6 +40,23 @@ class ChooseOneModelView(ChooseOneOptionView):
     async def get_static_buttons(self, flow_connector: FlowConnector) -> list[str]:
         return await self._get_instances_pks() + await super().get_static_buttons(flow_connector)
 
+    async def get_or_create_for_connector(
+        self,
+        flow_connector: FlowConnector,
+        dynamic_buttons: list[str | discord.Button] | None = None,
+        force_init: bool = False,
+        force_get: bool = False,
+        from_step_run: bool = False,
+    ) -> typing.Self:
+        """Get or create the view for the connector."""
+        # TODO: [2024-09-11 by Mykola] Make it so that all dynamic views are re-created on each step run
+        if from_step_run:
+            force_init = True
+
+        return await super().get_or_create_for_connector(
+            flow_connector, dynamic_buttons, force_init, force_get, from_step_run
+        )
+
     async def _set_user_answer(self, user_answer: typing.Any):
         """Set the user answer."""
         instance: BaseModel = await self.model_to_choose_from.get_or_none(pk=user_answer)

@@ -50,8 +50,8 @@ class AnalyticsManager(ContextInstanceMixin):
         """Save the channel to the database."""
         return await Channel.create(
             id=channel.id,
-            name=channel.name,
-            guild_id=channel.guild.id if channel.guild else None,
+            name=getattr(channel, "name", None),
+            guild_id=channel.guild.id if getattr(channel, "guild", None) else None,
             type=channel.type,
         )
 

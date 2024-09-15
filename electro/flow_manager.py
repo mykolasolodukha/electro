@@ -1,5 +1,7 @@
 """Flow Manager, the main object that manages all the `Flow`s."""
 
+from __future__ import annotations
+
 import typing
 from collections import defaultdict
 
@@ -10,8 +12,9 @@ from .flow import Flow, FlowConnector, FlowFinished
 from .flow_connector import FlowConnectorEvents
 
 # from decorators import fail_safely
-from .models import Channel, User
+from .models import Channel, Interaction, Message, User, UserStateChanged
 from .scopes import FlowScopes
+from .settings import settings
 from .storage import BaseFlowStorage, ChannelData, FlowMemoryStorage, UserData
 from .toolkit.loguru_logging import logger
 from .toolkit.tortoise_orm import Model
@@ -21,6 +24,131 @@ class EventCannotBeProcessed(Exception):
     """The exception that is raised when the event cannot be processed."""
 
     pass
+
+
+class AnalyticsManager(ContextInstanceMixin):
+    """The object that manages the analytics."""
+
+    def __init__(self, flow_manager: FlowManager):
+        self.flow_manager = flow_manager
+
+        # Set the current analytics manager
+        self.set_current(self)
+
+    @staticmethod
+    async def save_user(user: discord.User) -> User:
+        """Save the user to the database."""
+        return await User.create(
+            id=user.id,
+            username=user.name,
+            discriminator=user.discriminator,
+            avatar=user.avatar.url if user.avatar else None,
+        )
+
+    @staticmethod
+    async def save_channel(channel: discord.TextChannel) -> Channel:
+        """Save the channel to the database."""
+        return await Channel.create(
+            id=channel.id,
+            name=channel.name,
+            guild_id=channel.guild.id if channel.guild else None,
+            type=channel.type,
+        )
+
+    async def save_new_member(self, member: discord.Member) -> User:
+        """Save the new member to the database."""
+        # noinspection PyProtectedMember
+        user = member._user
+        user_obj = await self.save_user(user)
+
+        # TODO: [05.06.2024 by Mykola] Save the new member to the database
+
+        return user_obj
+
+    async def save_updated_member(self, before: discord.Member, after: discord.Member) -> User:
+        """Save the updated member to the database."""
+        # noinspection PyProtectedMember
+        user = after._user
+        user_obj = await self.save_user(user)
+
+        # TODO: [05.06.2024 by Mykola] Save the updated member to the database
+
+        return user_obj
+
+    async def _get_user_obj(self, user: discord.User) -> User:
+        if not (user_obj := await User.get_or_none(id=user.id)):
+            logger.warning(f"User {user.id} not found in the database. Creating the user record.")
+            user_obj: User = await self.save_user(user)
+
+        return user_obj
+
+    async def _get_channel_obj(self, channel: discord.TextChannel) -> Channel:
+        if not (channel_obj := await Channel.get_or_none(id=channel.id)):
+            logger.warning(f"Channel {channel.id} not found in the database. Creating the channel record.")
+            channel_obj: Channel = await self.save_channel(channel)
+
+        return channel_obj
+
+    async def get_or_save_message(self, message: discord.Message) -> Message:
+        """Save the message to the database."""
+        # Get the user and channel objects (make sure they exist in the database)
+        user_obj = await self._get_user_obj(message.author)
+        channel_obj = await self._get_channel_obj(message.channel)
+
+        if message_obj := await Message.get_or_none(id=message.id):
+            return message_obj
+
+        return await Message.create(
+            id=message.id,
+            content=message.content,
+            author=user_obj,
+            channel=channel_obj,
+            created_at=message.created_at,
+            edited_at=message.edited_at,
+            is_pinned=message.pinned,
+            is_tts=message.tts,
+            is_bot_message=message.author.bot,
+            is_command=message.content.startswith(settings.BOT_COMMAND_PREFIX),
+        )
+
+    async def save_interaction(
+        self, interaction: discord.Interaction, return_message_obj=False
+    ) -> Interaction | tuple[Interaction, Message]:
+        """Save the interaction to the database."""
+        # Get the user and channel objects (make sure they exist in the database)
+        user_obj = await self._get_user_obj(interaction.user)
+        channel_obj = await self._get_channel_obj(interaction.channel)
+
+        message_obj = await self.get_or_save_message(interaction.message)
+
+        interaction_obj: Interaction = await Interaction.create(
+            id=interaction.id,
+            user=user_obj,
+            channel=channel_obj,
+            message=message_obj,
+            custom_id=interaction.data.get("custom_id"),
+        )
+
+        if return_message_obj:
+            return interaction_obj, message_obj
+
+        return interaction_obj
+
+    async def save_user_state_changed(
+        self, user: discord.User, previous_state: str | None, new_state: str | None
+    ) -> UserStateChanged | None:
+        """Save the user state changed record to the database."""
+        if previous_state == new_state:
+            return
+
+        # Get the user object (make sure it exists in the database)
+        user_obj = await self._get_user_obj(user)
+
+        return await UserStateChanged.create(
+            user=user_obj,
+            previous_state=previous_state,
+            new_state=new_state,
+        )
 
 
 class FlowManager(ContextInstanceMixin):
@@ -40,6 +168,7 @@ class FlowManager(ContextInstanceMixin):
         self.flows: list[Flow] = flows
 
         self.storage = storage or FlowMemoryStorage()
+        self.analytics_manager = AnalyticsManager(self)
 
         self._on_finish_callbacks: list[typing.Callable[[FlowConnector], typing.Awaitable[None]]] = (
             on_finish_callbacks or []
@@ -55,10 +184,17 @@ class FlowManager(ContextInstanceMixin):
 
     async def _set_user_state(self, user: discord.User, state: str | None):
         """Set the state of the user."""
+        # Save the state to the database
+        old_state = await self._get_user_state(user)
+        if old_state != state:
+            await self.analytics_manager.save_user_state_changed(user, old_state, state)
         await self.storage.set_user_state(user.id, state)
 
     async def _delete_user_state(self, user: discord.User):
         """Delete the state of the user."""
+        old_state = await self._get_user_state(user)
+        if old_state:
+            await self.analytics_manager.save_user_state_changed(user, old_state, None)
         await self.storage.delete_user_state(user.id)
 
     async def _get_user_data(self, user: discord.User) -> UserData:
@@ -92,11 +228,7 @@ class FlowManager(ContextInstanceMixin):
         """Get the data of the channel."""
         return await self.storage.get_channel_data(channel.id)
 
-    async def _set_channel_data(
-        self,
-        channel: discord.TextChannel,
-        data: ChannelData | dict[str, typing.Any] | None,
-    ):
+    async def _set_channel_data(self, channel: discord.TextChannel, data: ChannelData | dict[str, typing.Any] | None):
         """Set the data of the channel."""
         await self.storage.set_channel_data(channel.id, data)
 
@@ -128,9 +260,7 @@ class FlowManager(ContextInstanceMixin):
             await callback(flow_connector)
 
     async def _create_user_and_channel(
-        self,
-        user: discord.User | None = None,
-        channel: discord.TextChannel | discord.DMChannel | None = None,
+        self, user: discord.User | None = None, channel: discord.TextChannel | discord.DMChannel | None = None
     ):
         """Create the `User` and `Channel` records if they don't exist."""
         logger.info(f"Creating the User and Channel records for {user=}, {channel=}")
@@ -277,6 +407,9 @@ class FlowManager(ContextInstanceMixin):
     async def on_message(self, message: discord.Message):
         """Handle the messages sent by the users."""
 
+        # Save the message to the database
+        message_obj: Message = await self.analytics_manager.get_or_save_message(message)
+
         # Ignore the messages sent by the bots
         if message.author.bot:
             return
@@ -298,6 +431,7 @@ class FlowManager(ContextInstanceMixin):
             user=message.author,
             channel=message.channel,
             message=message,
+            message_obj=message_obj,
             user_state=user_state,
             user_data=user_data,
             channel_state=channel_state,
@@ -308,6 +442,11 @@ class FlowManager(ContextInstanceMixin):
 
     async def on_interaction(self, interaction: discord.Interaction):
         """Handle the interactions sent by the users."""
+        # Save the interaction to the database
+        interaction_obj, message_obj = await self.analytics_manager.save_interaction(
+            interaction, return_message_obj=True
+        )
+
         # Get the user state and data
         logger.info(f"Getting the user state and data for {interaction.user.id}")
         user_state = await self._get_user_state(interaction.user)
@@ -328,6 +467,8 @@ class FlowManager(ContextInstanceMixin):
             user_data=user_data,
             message=interaction.message,
             interaction=interaction,
+            message_obj=message_obj,
+            interaction_obj=interaction_obj,
             channel_state=channel_state,
             channel_data=channel_data,
         )
@@ -336,6 +477,9 @@ class FlowManager(ContextInstanceMixin):
 
     async def on_member_join(self, member: discord.Member):
         """Handle the `member_join` event."""
+        # Save the user to the database
+        await self.analytics_manager.save_new_member(member)
+
         # Get the user state and data
         logger.info(f"Getting the user state and data for {member.id}")
         # TODO: [22.08.2023 by Mykola] Use correct types here
@@ -361,7 +505,10 @@ class FlowManager(ContextInstanceMixin):
         return await self.dispatch(flow_connector)
 
     async def on_member_update(self, before: discord.Member, after: discord.Member):
-        """Handle the `member_join` event."""
+        """Handle the `member_update` event."""
+        # Save the member update record to the database
+        await self.analytics_manager.save_updated_member(before, after)
+
         # Get the user state and data
         logger.info(f"Getting the user state and data for {after.id}")
         user_state = await self._get_user_state(after)

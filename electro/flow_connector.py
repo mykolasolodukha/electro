@@ -10,6 +10,7 @@ import discord
 from discord.ext import commands
 
 from ._common import ContextInstanceMixin
+from .models import Interaction, Message
 from .storage import ChannelData, UserData
 
 if TYPE_CHECKING:
@@ -51,6 +52,9 @@ class FlowConnector(ContextInstanceMixin):
 
     message: discord.Message | None = None
     interaction: discord.Interaction | None = None
+
+    message_obj: Message | None = None
+    interaction_obj: Interaction | None = None
 
     member: discord.Member | None = None
     substitutions: dict[str, str] | None = None

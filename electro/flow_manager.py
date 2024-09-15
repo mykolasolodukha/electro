@@ -38,12 +38,19 @@ class AnalyticsManager(ContextInstanceMixin):
     @staticmethod
     async def save_user(user: discord.User) -> User:
         """Save the user to the database."""
-        return await User.create(
+        user, created = await User.get_or_create(
             id=user.id,
-            username=user.name,
-            discriminator=user.discriminator,
-            avatar=user.avatar.url if user.avatar else None,
+            defaults={
+                "username": user.name,
+                "discriminator": user.discriminator,
+                "avatar": user.avatar.url if user.avatar else None,
+            },
         )
+
+        if created:
+            logger.info(f"Created the User record for {user.id=}, {user.username=}, and {user.discriminator}")
+
+        return user
 
     @staticmethod
     async def save_channel(channel: discord.TextChannel) -> Channel:

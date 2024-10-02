@@ -1,5 +1,6 @@
 import typing
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Type
 
 import discord
@@ -8,6 +9,7 @@ from .. import FlowConnector
 from ..contrib.storage_buckets import BaseStorageBucketElement
 from ..flow_step import MessageFlowStep
 from ..models import BaseModel
+from ..toolkit.images_storage.universal_image_storage import universal_image_storage
 from ..toolkit.loguru_logging import logger
 from ..toolkit.templated_i18n import TemplatedString
 from .storages import ModelsStorageElement
@@ -88,7 +90,8 @@ class ChooseOneFromModelsStep(MessageFlowStep):
 class AcceptFileStep(MessageFlowStep):
     """Accept a file from the user."""
 
-    storage_to_save_file_url_to: BaseStorageBucketElement = None
+    storage_to_save_file_url_to: BaseStorageBucketElement | None = None
+    storage_to_save_file_object_id_to: BaseStorageBucketElement | None = None
 
     file_is_required_message: TemplatedString | str = "You need to upload a file."
     file_saved_confirmation_message: TemplatedString | str | None = None
@@ -110,9 +113,20 @@ class AcceptFileStep(MessageFlowStep):
         # Get the first attachment
         attachment = connector.message.attachments[0]
 
-        # Save the file
-        await self.storage_to_save_file_url_to.set_data(attachment.url)
-        logger.info(f"Saved the file: {attachment.url=}")
+        # Save the file URL
+        if self.storage_to_save_file_url_to:
+            await self.storage_to_save_file_url_to.set_data(attachment.url)
+            logger.info(f"Saved the file URL: {attachment.url=}")
+
+        # Save the File
+        if self.storage_to_save_file_object_id_to:
+            file_io = BytesIO(await attachment.read())
+            file_object_key = await universal_image_storage.upload_image(file_io)
+
+            # Save the file object key
+            await self.storage_to_save_file_object_id_to.set_data(file_object_key)
+
+            logger.info(f"Saved the file object key: {file_object_key=}")
 
         if self.file_saved_confirmation_message:
             await self.send_message(connector, self.file_saved_confirmation_message)

@@ -3,6 +3,8 @@
 from pydantic import PostgresDsn, RedisDsn
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from .toolkit.images_storage.storages_enums import StoragesIDs
+
 
 class Settings(BaseSettings):
     """Settings for the project."""
@@ -49,6 +51,28 @@ class Settings(BaseSettings):
     REDIS_HOST: str | None = None
     REDIS_PORT: int | None = 6379
     REDIS_DB: int | None = 0
+
+    # Images storage
+    STORAGE_SERVICE_ID: StoragesIDs = "S3"
+
+    # S3 storage
+    # Allow this to be optional
+    S3_ENDPOINT_URL: str | None = None
+    S3_ACCESS_KEY_ID: str | None = None
+    S3_SECRET_ACCESS_KEY: str | None = None
+    S3_REGION_NAME: str | None = None
+
+    S3_IMAGES_BUCKET_NAME: str = "ikigai-for-university-images"
+
+    # Azure Blob Storage
+    # NB: It appears to be never used directly, rather the env vars are used by `DefaultAzureCredential`
+    AZURE_CLIENT_ID: str | None = None
+    AZURE_TENANT_ID: str | None = None
+    AZURE_CLIENT_SECRET: str | None = None
+
+    AZURE_STORAGE_ACCOUNT_NAME: str | None = None
+
+    AZURE_CONTAINER_NAME: str = "images"
 
     HTTPX_CLIENT_DEFAULT_TIMEOUT: int = 60
 

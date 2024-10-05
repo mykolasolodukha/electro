@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     S3_SECRET_ACCESS_KEY: str | None = None
     S3_REGION_NAME: str | None = None
 
-    S3_IMAGES_BUCKET_NAME: str = "ikigai-for-university-images"
+    S3_IMAGES_BUCKET_NAME: str = "files"
 
     # Azure Blob Storage
     # NB: It appears to be never used directly, rather the env vars are used by `DefaultAzureCredential`
@@ -72,7 +72,7 @@ class Settings(BaseSettings):
 
     AZURE_STORAGE_ACCOUNT_NAME: str | None = None
 
-    AZURE_CONTAINER_NAME: str = "images"
+    AZURE_CONTAINER_NAME: str = "files"
 
     HTTPX_CLIENT_DEFAULT_TIMEOUT: int = 60
 

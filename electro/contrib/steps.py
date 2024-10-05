@@ -8,7 +8,8 @@ import discord
 from .. import FlowConnector
 from ..contrib.storage_buckets import BaseStorageBucketElement
 from ..flow_step import MessageFlowStep
-from ..models import BaseModel
+from ..models import BaseModel, File
+from ..settings import settings
 from ..toolkit.images_storage.universal_image_storage import universal_image_storage
 from ..toolkit.loguru_logging import logger
 from ..toolkit.templated_i18n import TemplatedString
@@ -93,6 +94,8 @@ class AcceptFileStep(MessageFlowStep):
     storage_to_save_file_url_to: BaseStorageBucketElement | None = None
     storage_to_save_file_object_id_to: BaseStorageBucketElement | None = None
 
+    storage_to_save_saved_file_id_to: BaseStorageBucketElement | None = None
+
     file_is_required_message: TemplatedString | str = "You need to upload a file."
     file_saved_confirmation_message: TemplatedString | str | None = None
 
@@ -119,14 +122,34 @@ class AcceptFileStep(MessageFlowStep):
             logger.info(f"Saved the file URL: {attachment.url=}")
 
         # Save the File
-        if self.storage_to_save_file_object_id_to:
+        if self.storage_to_save_file_object_id_to or self.storage_to_save_saved_file_id_to:
             file_io = BytesIO(await attachment.read())
             file_object_key = await universal_image_storage.upload_image(file_io)
 
-            # Save the file object key
-            await self.storage_to_save_file_object_id_to.set_data(file_object_key)
+            if self.storage_to_save_file_object_id_to:
+                # Save the file object key
+                await self.storage_to_save_file_object_id_to.set_data(file_object_key)
 
-            logger.info(f"Saved the file object key: {file_object_key=}")
+                logger.info(f"Saved the file object key: {file_object_key=}")
+
+            if self.storage_to_save_saved_file_id_to:
+                # Create the `File` object
+                try:
+                    file = await File.create(
+                        added_by_user_id=connector.user.id,
+                        storage_service=settings.STORAGE_SERVICE_ID,
+                        storage_file_object_key=file_object_key,
+                        file_name=attachment.filename,
+                        discord_attachment_id=attachment.id,
+                        discord_cdn_url=attachment.url,
+                    )
+
+                except Exception as exception:
+                    logger.error(f"Failed to save the file: {exception}")
+                    return await self.send_message(connector, "Failed to save the file.")
+
+                # Save the file ID
+                await self.storage_to_save_saved_file_id_to.set_data(file.pk)
 
         if self.file_saved_confirmation_message:
             await self.send_message(connector, self.file_saved_confirmation_message)

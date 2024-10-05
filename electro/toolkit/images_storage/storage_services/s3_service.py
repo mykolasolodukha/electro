@@ -72,6 +72,7 @@ class S3Service(BaseStorageService):
         """
         object_key = str(uuid4())
         try:
+            # TODO: [2024-10-05 by Mykola] IT'S NOT ALWAYS JPEG
             await self.upload_file(image_io, object_key, extra_args={"ContentType": "image/jpeg"})
             logger.info(f"Image uploaded successfully: {object_key}")
             return object_key

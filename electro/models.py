@@ -5,6 +5,7 @@ from __future__ import annotations
 from tortoise import fields
 from tortoise.fields import ForeignKeyRelation
 
+from .toolkit.images_storage.storages_enums import StoragesIDs
 from .toolkit.tortoise_orm import Model
 
 
@@ -47,9 +48,26 @@ class User(BaseModel):
     messages: fields.ReverseRelation[Message]
     state_changed: fields.ReverseRelation[UserStateChanged]
 
+    files: fields.ReverseRelation[File]
+
     def __str__(self) -> str:
         """Return the string representation of the model."""
         return f"{self.username}#{self.discriminator}"
+
+
+class File(BaseModel):
+    """The model for the file."""
+
+    added_by_user: ForeignKeyRelation[User] = fields.ForeignKeyField("electro.User", related_name="files", null=True)
+
+    storage_service: StoragesIDs = fields.CharEnumField(StoragesIDs, max_length=32)
+
+    storage_file_object_key = fields.TextField()
+
+    file_name = fields.TextField(null=True)
+
+    discord_attachment_id = fields.TextField(null=True)
+    discord_cdn_url = fields.TextField(null=True)
 
 
 class Guild(BaseModel):

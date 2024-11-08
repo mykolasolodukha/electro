@@ -192,43 +192,6 @@ def callback_handler(
     return decorator
 
 
-@dataclass(kw_only=True)
-class SendImageFlowStep(FilesMixin, BaseFlowStep):
-    """The Step that sends an image."""
-
-    non_blocking = True
-    language: str | None = None
-
-    def __post_init__(self):
-        if self.language:
-            language = self.language.lower()
-            language_specific_file = self.file.with_stem(f"{self.file.stem}__{language}")
-
-            if language_specific_file.exists():
-                self.file = language_specific_file
-            else:
-                logger.warning(
-                    f"In step {self.__class__.__name__}: "
-                    f"Language-specific file {language_specific_file} does not exist. Using the default."
-                )
-
-    async def run(self, connector: FlowConnector):
-        """Run the `SendImageFlowStep`."""
-        files = await self._get_files_to_send(connector)
-
-        await connector.channel.send(
-            files=files or None,
-        )
-
-        if self.non_blocking:
-            raise FlowStepDone()
-
-    async def process_response(self, connector: FlowConnector):
-        """Process the response. Do nothing because this is a non-blocking step."""
-
-        raise FlowStepDone()
-
-
 @dataclass
 class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
     """The class for `MessageFlowStep`."""
@@ -358,6 +321,34 @@ class DirectMessageFlowStep(MessageFlowStep):
             channel_to_send_to = GlobalAbstractChannel.DM_CHANNEL
 
         return await super().run(connector, channel_to_send_to=channel_to_send_to)
+
+
+@dataclass(kw_only=True)
+class SendImageFlowStep(MessageFlowStep):
+    """The Step that sends an image."""
+
+    language: str | None = None
+
+    force_blocking_step: bool = False
+
+    def __post_init__(self):
+        """Post-initialization."""
+        # If the user doesn't want to force the blocking step, set the `non_blocking` flag to `True`
+        if not self.force_blocking_step:
+            self.non_blocking = True
+
+        # If the language is set, try to use the language-specific file
+        if self.language:
+            language = self.language.lower()
+            language_specific_file = self.file.with_stem(f"{self.file.stem}__{language}")
+
+            if language_specific_file.exists():
+                self.file = language_specific_file
+            else:
+                logger.warning(
+                    f"In step {self.__class__.__name__}: "
+                    f"Language-specific file {language_specific_file} does not exist. Using the default."
+                )
 
 
 # TODO: [26.09.2023 by Mykola] Move to a separate file

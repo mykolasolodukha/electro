@@ -19,7 +19,7 @@ from .flow_connector import FlowConnectorEvents
 
 # from decorators import with_constant_typing
 from .settings import settings
-from .substitutions import BaseSubstitution
+from .substitutions import BaseSubstitution, GlobalAbstractChannel, resolve_channel
 from .toolkit.loguru_logging import logger
 from .toolkit.openai_client import async_openai_client
 from .toolkit.templated_i18n import TemplatedString
@@ -236,7 +236,7 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
     message: TemplatedString | None = None
     response_message: TemplatedString | None = None
 
-    channel_to_send_to: discord.abc.Messageable | BaseSubstitution | None = None
+    channel_to_send_to: discord.abc.Messageable | BaseSubstitution | GlobalAbstractChannel | None = None
 
     substitutions: dict[str, str] | None = None
 
@@ -250,6 +250,24 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
 
     non_blocking: bool = False
     _testing: bool = False
+
+    @staticmethod
+    async def _resolve_channel_to_send_to(
+        channel_to_send_to: (
+            discord.abc.Messageable | BaseSubstitution[discord.abc.Messageable] | GlobalAbstractChannel | None
+        ),
+        connector: FlowConnector,
+    ) -> discord.abc.Messageable:
+        if not channel_to_send_to:
+            return connector.channel
+
+        if isinstance(channel_to_send_to, BaseSubstitution):
+            return await channel_to_send_to.resolve(connector)
+
+        if isinstance(channel_to_send_to, GlobalAbstractChannel):
+            return await resolve_channel(channel_to_send_to, connector.user)
+
+        return channel_to_send_to
 
     async def send_message(
         self,
@@ -265,9 +283,9 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
 
         files = await self._get_files_to_send(connector)
 
-        channel_to_send_to: discord.abc.Messageable = (
-            await channel.resolve(connector) if channel and isinstance(channel, BaseSubstitution) else channel
-        ) or connector.channel
+        channel_to_send_to: discord.abc.Messageable = await self._resolve_channel_to_send_to(
+            channel or self.channel_to_send_to, connector
+        )
 
         view_to_sent = await view.get_or_create_for_connector(connector, from_step_run=True) if view else None
 
@@ -337,7 +355,7 @@ class DirectMessageFlowStep(MessageFlowStep):
 
     async def run(self, connector: FlowConnector, channel_to_send_to: discord.abc.Messageable | None = None):
         if not channel_to_send_to and not isinstance(connector.channel, discord.DMChannel):
-            channel_to_send_to = await connector.user.create_dm()
+            channel_to_send_to = GlobalAbstractChannel.DM_CHANNEL
 
         return await super().run(connector, channel_to_send_to=channel_to_send_to)
 

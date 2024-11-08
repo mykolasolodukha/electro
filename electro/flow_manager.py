@@ -8,6 +8,7 @@ from collections import defaultdict
 import discord
 
 from ._common import ContextInstanceMixin
+from .exceptions import EventCannotBeProcessed
 from .flow import Flow, FlowConnector, FlowFinished
 from .flow_connector import FlowConnectorEvents
 
@@ -20,12 +21,6 @@ from .toolkit.loguru_logging import logger
 from .toolkit.tortoise_orm import Model
 
 
-class EventCannotBeProcessed(Exception):
-    """The exception that is raised when the event cannot be processed."""
-
-    pass
-
-
 class AnalyticsManager(ContextInstanceMixin):
     """The object that manages the analytics."""
 
@@ -36,7 +31,7 @@ class AnalyticsManager(ContextInstanceMixin):
         self.set_current(self)
 
     @staticmethod
-    async def save_user(user: discord.User) -> User:
+    async def save_user(user: discord.User, guild: discord.Guild | None = None) -> User:
         """Save the user to the database."""
         user, created = await User.get_or_create(
             id=user.id,
@@ -44,6 +39,7 @@ class AnalyticsManager(ContextInstanceMixin):
                 "username": user.name,
                 "discriminator": user.discriminator,
                 "avatar": user.avatar.url if user.avatar else None,
+                "guild_id": guild.id if guild else None,
             },
         )
 
@@ -66,7 +62,7 @@ class AnalyticsManager(ContextInstanceMixin):
         """Save the new member to the database."""
         # noinspection PyProtectedMember
         user = member._user
-        user_obj = await self.save_user(user)
+        user_obj = await self.save_user(user, member.guild)
 
         # TODO: [05.06.2024 by Mykola] Save the new member to the database
 
@@ -76,16 +72,16 @@ class AnalyticsManager(ContextInstanceMixin):
         """Save the updated member to the database."""
         # noinspection PyProtectedMember
         user = after._user
-        user_obj = await self.save_user(user)
+        user_obj = await self.save_user(user, after.guild)
 
         # TODO: [05.06.2024 by Mykola] Save the updated member to the database
 
         return user_obj
 
-    async def _get_user_obj(self, user: discord.User) -> User:
+    async def _get_user_obj(self, user: discord.User, guild: discord.Guild | None = None) -> User:
         if not (user_obj := await User.get_or_none(id=user.id)):
             logger.warning(f"User {user.id} not found in the database. Creating the user record.")
-            user_obj: User = await self.save_user(user)
+            user_obj: User = await self.save_user(user, guild)
 
         return user_obj
 
@@ -99,7 +95,7 @@ class AnalyticsManager(ContextInstanceMixin):
     async def get_or_save_message(self, message: discord.Message) -> Message:
         """Save the message to the database."""
         # Get the user and channel objects (make sure they exist in the database)
-        user_obj = await self._get_user_obj(message.author)
+        user_obj = await self._get_user_obj(message.author, message.guild)
         channel_obj = await self._get_channel_obj(message.channel)
 
         if message_obj := await Message.get_or_none(id=message.id):
@@ -123,7 +119,7 @@ class AnalyticsManager(ContextInstanceMixin):
     ) -> Interaction | tuple[Interaction, Message]:
         """Save the interaction to the database."""
         # Get the user and channel objects (make sure they exist in the database)
-        user_obj = await self._get_user_obj(interaction.user)
+        user_obj = await self._get_user_obj(interaction.user, interaction.guild)
         channel_obj = await self._get_channel_obj(interaction.channel)
 
         message_obj = await self.get_or_save_message(interaction.message)
@@ -149,7 +145,7 @@ class AnalyticsManager(ContextInstanceMixin):
             return
 
         # Get the user object (make sure it exists in the database)
-        user_obj = await self._get_user_obj(user)
+        user_obj = await self._get_user_obj(user)  # TODO: [2024-10-16 by Mykola] Should be pass `guild` here?
 
         return await UserStateChanged.create(
             user=user_obj,

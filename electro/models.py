@@ -43,7 +43,11 @@ class User(BaseModel):
     is_bot = fields.BooleanField(default=False)
 
     is_admin = fields.BooleanField(default=False)
-    is_staff_member = fields.BooleanField(default=False)
+
+    # guilds: fields.ManyToManyRelation["Guild"]  # TODO: [2024-08-30 by Mykola] Allow multiple guilds for the user.
+    guild: fields.ForeignKeyRelation[Guild] | Guild = fields.ForeignKeyField(
+        "electro.Guild", related_name="users", null=True
+    )
 
     messages: fields.ReverseRelation[Message]
     state_changed: fields.ReverseRelation[UserStateChanged]
@@ -234,6 +238,9 @@ class BaseImagesStepStorageModel(BaseStorageModel):
     buttons_sent_to_images = fields.JSONField(default=dict, null=True)
     images_sent_in_this_step = fields.JSONField(default=list, null=True)
     image_chosen = fields.CharField(max_length=255, null=True)
+    # TODO: [2024-11-08 by Mykola] Add this later to maintain compatibility with the old data
+    # TODO: [2024-11-08 by Mykola] Remove this from this model. It should be downstream
+    # metaphors = fields.JSONField(default=list, null=True)
 
     load_more_button_custom_id = fields.CharField(max_length=255, null=True)
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Generic, get_origin
+from typing import Generic, get_origin, Type
 
 import tortoise
 from stringcase import snakecase

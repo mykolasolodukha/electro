@@ -20,10 +20,11 @@ from ..toolkit.loguru_logging import logger
 if typing.TYPE_CHECKING:
     from .buttons import ActionButton
 
-from .storage_buckets import BaseStorageBucketElement
+from .storage_buckets import StorageBucketElement
 
 if typing.TYPE_CHECKING:
     from ..flow_connector import FlowConnector
+
 
 LAST_ROW_INDEX = 4
 
@@ -265,7 +266,7 @@ class ConfirmButtonView(BaseView):
 
 
 class StorageMixin(ABC):
-    answers_storage: BaseStorageBucketElement | None = None
+    answers_storage: StorageBucketElement | None = None
 
     async def _get_user_answer(self) -> typing.Any:
         """Get the user answer."""
@@ -293,7 +294,7 @@ class ChooseOneOptionView(BaseView, StorageMixin):
     def __init__(
         self,
         options: list[str | discord.ui.Button] | typing.Callable[[], typing.Awaitable[list[str]]],
-        answers_storage: BaseStorageBucketElement | None = None,
+        answers_storage: StorageBucketElement | None = None,
         **kwargs,
     ):
         """Initialize the view."""
@@ -344,7 +345,7 @@ class MultipleAnswersView(ConfirmButtonView, StorageMixin):
         confirm_button_label: str,
         n_answers_to_select: int | None = None,
         min_answers_allowed: int | None = None,
-        answers_storage: BaseStorageBucketElement | None = None,
+        answers_storage: StorageBucketElement | None = None,
         answers_selection_style: FrameworkButtonStyle = FrameworkButtonStyle.success,
         confirm_button_style: FrameworkButtonStyle = FrameworkButtonStyle.primary,
         **kwargs,

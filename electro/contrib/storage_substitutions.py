@@ -18,6 +18,8 @@ class TortoiseModelSubstitution(CallbackSubstitution, ABC):
         tortoise_model_field_name: str,
         filters: dict[str, Any] | None = None,
         ensure_list_result: bool = False,
+        *args,
+        **kwargs,
     ):
         """Initialize the substitution."""
         self.tortoise_model = tortoise_model
@@ -25,7 +27,7 @@ class TortoiseModelSubstitution(CallbackSubstitution, ABC):
         self.filters = filters or {}
         self.ensure_list_result = ensure_list_result
 
-        super().__init__(callback=self.get_value_for_connector)
+        super().__init__(callback=self.get_value_for_connector, *args, **kwargs)
 
     @staticmethod
     async def resolve_filters(flow_connector: FlowConnector, filters: dict[str, Any]) -> dict[str, Any]:

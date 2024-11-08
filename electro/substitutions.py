@@ -4,25 +4,42 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, abstractmethod
+from enum import Enum
 
 import discord
 
 from .flow_connector import FlowConnector
 from .toolkit.redis_storage import RedisStorage
 
-REDIS_STORAGE_VALUE = typing.TypeVar("REDIS_STORAGE_VALUE", bound=typing.Any)
+VALUE = typing.TypeVar("VALUE")
 
 
-RETURN_TYPE = typing.TypeVar("RETURN_TYPE")
-
-
-class BaseSubstitution(ABC, typing.Generic[RETURN_TYPE]):
+class BaseSubstitution(ABC, typing.Generic[VALUE]):
     """The base class for the substitution objects."""
 
+    def __init__(
+        self,
+        default_value: typing.Optional[VALUE] = None,
+        formatter: typing.Callable[[VALUE], str] | None = None,
+        ensure_str_result: bool = False,
+    ):
+        self.default_value: VALUE = default_value
+        self.formatter: typing.Callable[[VALUE], str] | None = formatter
+        self.ensure_str_result: bool = ensure_str_result
+
     @abstractmethod
-    async def resolve(self, connector: FlowConnector) -> RETURN_TYPE:
-        """Resolve the substitution object."""
+    async def _resolve(self, connector: FlowConnector) -> VALUE:
+        """The method that should be implemented in the child classes."""
         raise NotImplementedError
+
+    async def resolve(self, connector: FlowConnector) -> VALUE:
+        """Resolve the value for the connector."""
+        value = await self._resolve(connector) or self.default_value
+
+        if self.formatter and value is not None:
+            return self.formatter(value)
+        else:
+            return str(value) if self.ensure_str_result else value
 
 
 class ManualRedisStorageSubstitution(BaseSubstitution):
@@ -31,25 +48,18 @@ class ManualRedisStorageSubstitution(BaseSubstitution):
     redis_storage: RedisStorage
     redis_storage_key_name: str
 
-    formatter: typing.Callable[[REDIS_STORAGE_VALUE], str] | None = None
-
     is_chat_specific: bool = False
 
     def __init__(
-        self,
-        redis_storage: RedisStorage,
-        redis_storage_key_name: str,
-        default_value: typing.Optional[REDIS_STORAGE_VALUE] = None,
-        formatter: typing.Callable[[REDIS_STORAGE_VALUE], str] | None = None,
-        is_chat_specific: bool = False,
+        self, redis_storage: RedisStorage, redis_storage_key_name: str, is_chat_specific: bool = False, *args, **kwargs
     ):
+        super().__init__(*args, **kwargs)
+
         self.redis_storage = redis_storage
         self.redis_storage_key_name = redis_storage_key_name
-        self.default_value = default_value
-        self.formatter = formatter
         self.is_chat_specific = is_chat_specific
 
-    async def resolve(self, connector: FlowConnector) -> str:
+    async def _resolve(self, connector: FlowConnector) -> str:
         if not self.is_chat_specific and not isinstance(connector.channel, discord.DMChannel):
             channel = await connector.bot.create_dm(connector.user)
         else:
@@ -63,25 +73,25 @@ class ManualRedisStorageSubstitution(BaseSubstitution):
                 )
                 or {}
             )
-            data: REDIS_STORAGE_VALUE = redis_user_data.get(self.redis_storage_key_name, self.default_value)
+            data: VALUE = redis_user_data.get(self.redis_storage_key_name, self.default_value)
         except (TypeError, IndexError) as exception:
             return str(f"{exception} in REDIS STORAGE SUBSTITUTION for key: {self.redis_storage_key_name}")
         else:
-            if self.formatter:
-                return self.formatter(data)
-            else:
-                return str(data)
+            return data
 
 
 class AttributeSubstitution(BaseSubstitution):
     substitution_object: BaseFlowSubstitutionObject
     attribute: str | None = None
 
-    def __init__(self, substitution_object: BaseFlowSubstitutionObject, attribute: str | None = None):
+    def __init__(self, substitution_object: BaseFlowSubstitutionObject, attribute: str | None = None, *args, **kwargs):
+        """The Substitution object that would be fetched from the attribute of the object."""
+        super().__init__(*args, **kwargs)
+
         self.substitution_object = substitution_object
         self.attribute = attribute
 
-    async def resolve(self, connector: FlowConnector) -> RETURN_TYPE:
+    async def _resolve(self, connector: FlowConnector) -> VALUE:
         if self.substitution_object.flow_connector_attribute:
             real_object = getattr(connector, self.substitution_object.flow_connector_attribute)
         else:
@@ -91,18 +101,21 @@ class AttributeSubstitution(BaseSubstitution):
         if self.attribute:
             return getattr(real_object, self.attribute)
         else:
-            return str(real_object)
+            return real_object
 
 
-class CallbackSubstitution(BaseSubstitution[RETURN_TYPE]):
+class CallbackSubstitution(BaseSubstitution[VALUE]):
     """The Substitution object that would be fetched from the callback."""
 
-    callback: typing.Callable[[FlowConnector], typing.Awaitable[RETURN_TYPE]]
+    callback: typing.Callable[[FlowConnector], typing.Awaitable[VALUE]]
 
-    def __init__(self, callback: typing.Callable[[FlowConnector], typing.Awaitable[RETURN_TYPE]]):
+    def __init__(self, callback: typing.Callable[[FlowConnector], typing.Awaitable[VALUE]], *args, **kwargs):
+        """The Substitution object that would be fetched from the callback."""
+        super().__init__(*args, **kwargs)
+
         self.callback = callback
 
-    async def resolve(self, connector: FlowConnector) -> RETURN_TYPE:
+    async def _resolve(self, connector: FlowConnector) -> VALUE:
         return await self.callback(connector)
 
 

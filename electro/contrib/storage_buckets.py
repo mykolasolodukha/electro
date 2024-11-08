@@ -4,19 +4,17 @@ from __future__ import annotations
 
 import typing
 from abc import ABC, ABCMeta, abstractmethod
-from typing import Generic, get_origin, Type
+from typing import Generic, get_origin
 
 import tortoise
 from stringcase import snakecase
 
 from ..flow_connector import FlowConnector
 from ..scopes import FlowScopes
-from ..substitutions import BaseSubstitution
+from ..substitutions import BaseSubstitution, VALUE
 from ..toolkit.loguru_logging import logger
 
 STORAGE_BUCKETS_SEPARATOR = "::"
-
-VALUE = typing.TypeVar("VALUE")
 
 
 class StorageSubstitution(BaseSubstitution):
@@ -25,19 +23,20 @@ class StorageSubstitution(BaseSubstitution):
     data_factory: typing.Callable[[], typing.Awaitable[VALUE | None]]
     index: int | None = None
 
-    formatter: typing.Callable[[VALUE], str] | None = None
-
     def __init__(
         self,
         data_factory: typing.Callable[[], typing.Awaitable[VALUE | None]],
         index: int | None = None,
-        formatter: typing.Callable[[VALUE], str] | None = None,
+        *args,
+        **kwargs,
     ):
+        """Initialize the Storage Substitution."""
+        super().__init__(*args, **kwargs)
+
         self.data_factory = data_factory
         self.index = index
-        self.formatter = formatter
 
-    async def resolve(self, connector: FlowConnector) -> str:
+    async def _resolve(self, connector: FlowConnector) -> VALUE:
         """Resolve the substitution object."""
         try:
             data = await self.data_factory()
@@ -52,10 +51,7 @@ class StorageSubstitution(BaseSubstitution):
             except (TypeError, IndexError) as exception:
                 return str(f"{exception} in STORAGE SUBSTITUTION for index: {self.index}")
 
-        if self.formatter is not None and data is not None:
-            return self.formatter(data)
-
-        return str(data)
+        return data
 
 
 class StorageData(Generic[VALUE]):

@@ -7,6 +7,7 @@ import discord.ui
 from ..flow import Flow
 from ..flow_connector import FlowConnector
 from ..flow_step import BaseFlowStep
+from ..toolkit.buttons import FrameworkButtonStyle
 
 CALLBACK_TYPE = typing.Callable[[FlowConnector], typing.Awaitable[None]] | BaseFlowStep
 
@@ -56,3 +57,12 @@ class GoToFlowButton(ActionButton):
 
         async with flow_connector.flow_manager:
             return await flow.run(flow_connector)
+
+
+class DataButton(discord.ui.Button):
+    def __init__(self, label: str, style: FrameworkButtonStyle, custom_id: str = None, **kwargs):
+        super().__init__(label=label, style=style, custom_id=custom_id)
+        self.kwargs = kwargs
+
+    async def callback(self, interaction: discord.Interaction):
+        interaction.data = {**interaction.data, **self.kwargs}

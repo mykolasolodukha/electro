@@ -139,3 +139,23 @@ class UserSubstitutionObject(BaseFlowSubstitutionObject):
 
 
 UserObject = UserSubstitutionObject()
+
+
+# region Specific Substitutions for Channels
+class GlobalAbstractChannel(str, Enum):
+    """The Enum for the global channels that are used in the bot."""
+
+    DM_CHANNEL = "dm_channel"
+
+
+async def resolve_channel(
+    abstract_channel: GlobalAbstractChannel, user: discord.User
+) -> discord.TextChannel | discord.DMChannel:
+    """Resolve the channel by the name."""
+    if abstract_channel == GlobalAbstractChannel.DM_CHANNEL:
+        return await user.create_dm()
+
+    raise ValueError(f"Unknown channel: {abstract_channel}")
+
+
+# endregion

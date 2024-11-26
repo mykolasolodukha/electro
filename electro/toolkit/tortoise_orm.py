@@ -4,12 +4,15 @@ import ssl
 import typing
 
 import stringcase
-import tortoise
+from tortoise import Tortoise
+from tortoise.backends.base.config_generator import expand_db_url
+from tortoise.models import Model as tortoise_Model
+from tortoise.models import ModelMeta as tortoise_ModelMeta
 
 from ..settings import settings
 
 
-class ModelMeta(tortoise.ModelMeta):
+class ModelMeta(tortoise_ModelMeta):
     """
     Metaclass for `tortoise-orm` `Model`.
 
@@ -21,7 +24,7 @@ class ModelMeta(tortoise.ModelMeta):
 
     def __new__(mcs, name, bases, attrs):
         """Create a new `Model` class."""
-        new_class: typing.Type[tortoise.Model] = super().__new__(mcs, name, bases, attrs)
+        new_class: typing.Type[tortoise_Model] = super().__new__(mcs, name, bases, attrs)
 
         if name != "Model":
             # Cache the `._meta` attribute, so we don't have to access it multiple times
@@ -34,7 +37,7 @@ class ModelMeta(tortoise.ModelMeta):
         return new_class
 
 
-class Model(tortoise.Model, metaclass=ModelMeta):
+class Model(tortoise_Model, metaclass=ModelMeta):
     """The base `tortoise-orm` `Model`."""
 
     pass
@@ -42,12 +45,12 @@ class Model(tortoise.Model, metaclass=ModelMeta):
 
 def get_tortoise_config():
     """Get the configuration for the `tortoise-orm`."""
-    if not (database_url := settings.DATABASE_URL):
+    if not (database_url := str(settings.DATABASE_URL)):
         database_url = (
             f"postgres://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@"
             f"{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DB}"
         )
-    db = tortoise.expand_db_url(str(database_url))
+    db = expand_db_url(database_url)
     ctx = False
     if settings.ENABLE_DATABASE_SSL:
         ctx = ssl.create_default_context(cafile="")
@@ -74,23 +77,23 @@ def get_tortoise_config():
 async def init():
     """Initialize the `tortoise-orm`."""
     # Init database connection
-    await tortoise.Tortoise.init(config=get_tortoise_config())
+    await Tortoise.init(config=get_tortoise_config())
 
 
 async def shutdown():
     """Shutdown the `tortoise-orm`."""
-    await tortoise.Tortoise.close_connections()
+    await Tortoise.close_connections()
 
 
 # Used by aerich.ini
 TORTOISE_ORM_CONFIG = get_tortoise_config()
 
 
-def flatten_tortoise_model(model: tortoise.Model, separator: str | None = ".", prefix: str | None = None) -> dict:
+def flatten_tortoise_model(model: tortoise_Model, separator: str | None = ".", prefix: str | None = None) -> dict:
     """Flatten a `tortoise-orm` `Model` to a dictionary with a given separator in the keys."""
     flattened_dict: dict = {}
     for key, value in model.__dict__.items():
-        if isinstance(value, tortoise.Model):
+        if isinstance(value, tortoise_Model):
             flattened_dict.update(
                 **flatten_tortoise_model(
                     value,

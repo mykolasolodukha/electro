@@ -2,10 +2,9 @@
 import discord
 
 from electro.bot import bot
-from electro import Flow, MessageFlowStep, FlowManager
+from electro import Flow, MessageFlowStep
 from electro.extra.i18n_gettext import templated_gettext as _
 from electro.models import User, Guild
-from electro.storage import FlowMemoryStorage
 
 from electro.toolkit.discord_tweeks import enable_message_separator
 from electro.toolkit.loguru_logging import logger
@@ -14,6 +13,7 @@ from electro.triggers import CommandTrigger
 
 from electro.toolkit.tortoise_orm import init as init_orm
 from electro.settings import settings
+from electro.flow_manager import global_flow_manager
 
 
 class TestFlow(Flow):
@@ -28,13 +28,7 @@ class TestFlow(Flow):
     )
 
 
-flow_manager = FlowManager(
-    bot=bot,
-    flows=[
-        TestFlow(),
-    ],
-    storage=FlowMemoryStorage(),
-)
+global_flow_manager.add_flow(TestFlow)
 
 # region Setting up the bot
 # TODO: [2024-07-20 by Mykola] Move to a separate file

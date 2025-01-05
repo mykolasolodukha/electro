@@ -1,8 +1,10 @@
 """The types (objects) used in the `electro` framework. Used to un-couple `electro` from the Discord framework."""
 
+from datetime import datetime
+
 from pydantic import BaseModel, ConfigDict
 
-from enums import SupportedPlatforms
+from enums import ChannelType, SupportedPlatforms
 
 
 class ElectroBaseModel(BaseModel):
@@ -39,7 +41,7 @@ class Channel(ElectroBaseModel):
 
     id: int
     name: str | None
-    type: str
+    type: ChannelType
 
     guild: Guild | None
 
@@ -55,5 +57,5 @@ class Message(ElectroBaseModel):
     author: User
     channel: Channel
 
-    created_at: str
-    edited_at: str | None
+    created_at: datetime
+    edited_at: datetime | None

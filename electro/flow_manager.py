@@ -5,6 +5,8 @@ from __future__ import annotations
 import typing
 from collections import defaultdict
 
+from enums import ChannelType
+
 from . import types_ as types
 from ._common import ContextInstanceMixin
 from .bot import bot as global_bot
@@ -324,7 +326,7 @@ class FlowManager(ContextInstanceMixin):
         # Create the User and Channel records if they don't exist
         await self._create_user_and_channel(flow_connector.user, flow_connector.channel)
 
-        is_dm_channel = flow_connector.channel and flow_connector.channel.type == types.ChannelType.private
+        is_dm_channel = flow_connector.channel and flow_connector.channel.type == ChannelType.private
 
         if is_dm_channel:
             scope = FlowScopes.USER

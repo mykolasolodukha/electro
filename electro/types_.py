@@ -59,3 +59,10 @@ class Message(ElectroBaseModel):
 
     created_at: datetime
     edited_at: datetime | None
+
+
+class MessageToSend(ElectroBaseModel):
+    """The model for Message to send."""
+
+    content: str
+    channel: Channel

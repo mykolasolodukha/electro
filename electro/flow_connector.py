@@ -9,6 +9,8 @@ from typing import Any, TYPE_CHECKING
 import discord
 from discord.ext import commands
 
+from types_ import Channel, User
+
 from ._common import ContextInstanceMixin
 from .models import Interaction, Message
 from .storage import ChannelData, UserData
@@ -41,8 +43,8 @@ class FlowConnector(ContextInstanceMixin):
 
     event: FlowConnectorEvents
 
-    user: discord.User | None
-    channel: discord.TextChannel | None
+    user: User | None
+    channel: Channel | None
 
     user_state: str | None
     user_data: UserData

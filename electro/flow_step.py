@@ -13,6 +13,8 @@ from typing import Any
 import discord
 from openai import NOT_GIVEN
 
+from types_ import Channel, MessageToSend
+
 from .contrib.storage_buckets import BaseStorageBucketElement, StorageBucketElement
 from .contrib.views import BaseView, ViewStepFinished
 from .flow_connector import FlowConnectorEvents
@@ -216,11 +218,9 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
 
     @staticmethod
     async def _resolve_channel_to_send_to(
-        channel_to_send_to: (
-            discord.abc.Messageable | BaseSubstitution[discord.abc.Messageable] | GlobalAbstractChannel | None
-        ),
+        channel_to_send_to: Channel | BaseSubstitution[Channel] | GlobalAbstractChannel | None,
         connector: FlowConnector,
-    ) -> discord.abc.Messageable:
+    ) -> Channel:
         if not channel_to_send_to:
             return connector.channel
 
@@ -238,24 +238,25 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
         message: TemplatedString | str,
         channel: discord.abc.Messageable | BaseSubstitution[discord.abc.Messageable] | None = None,
         view: BaseView | None = None,
-    ) -> discord.Message:
+    ) -> MessageToSend:
         """Send the message."""
         message: str | None = (
             await self._get_formatted_message(message, connector) if isinstance(message, TemplatedString) else message
         )
 
-        files = await self._get_files_to_send(connector)
+        # files = await self._get_files_to_send(connector)
 
-        channel_to_send_to: discord.abc.Messageable = await self._resolve_channel_to_send_to(
+        channel_to_send_to: Channel = await self._resolve_channel_to_send_to(
             channel or self.channel_to_send_to, connector
         )
 
-        view_to_sent = await view.get_or_create_for_connector(connector, from_step_run=True) if view else None
+        # view_to_sent = await view.get_or_create_for_connector(connector, from_step_run=True) if view else None
 
-        return await channel_to_send_to.send(
-            message,
-            files=files or None,
-            view=view_to_sent,
+        return MessageToSend(
+            content=message,
+            channel=channel_to_send_to,
+            # files=files or None,
+            # view=view_to_sent,
         )
 
     # TODO: [2024-07-19 by Mykola] Use the decorators
@@ -263,11 +264,11 @@ class MessageFlowStep(BaseFlowStep, FilesMixin, MessageFormatterMixin):
     async def run(
         self,
         connector: FlowConnector,
-        channel_to_send_to: discord.abc.Messageable | BaseSubstitution | None = None,
-    ) -> discord.Message:
+        channel_to_send_to: Channel | BaseSubstitution | None = None,
+    ) -> MessageToSend:
         """Run the `BaseFlowStep`."""
 
-        message: discord.Message = await self.send_message(
+        message: MessageToSend = await self.send_message(
             connector, self.message, channel=channel_to_send_to, view=self.view
         )
 

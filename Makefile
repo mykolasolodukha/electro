@@ -17,6 +17,12 @@ style:
 	poetry run pylint $(SOURCES_DIR)
 	poetry run pydocstyle $(SOURCES_DIR)
 
+.PHONY: docs
+docs:
+	set -a && source .env && set +a && \
+	sphinx-apidoc --force --append-syspath --output-dir ./docs/source electro && \
+	cd docs && $(MAKE) html
+
 
 # endregion
 

@@ -32,6 +32,10 @@ black = "^24.8.0"
 isort = "^5.13.2"
 pylint = "^3.2.6"
 pydocstyle = {extras = ["toml"], version = "^6.3.0"}
+sphinx = "^8.2.0"
+sphinx-rtd-theme = "^3.0.2"
+autodoc-pydantic = "^2.2.0"
+sphinx-autodoc-typehints = "^3.0.1"
 
 
 [tool.black]
